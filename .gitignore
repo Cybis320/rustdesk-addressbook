@@ -1,0 +1,13 @@
+# Local data & secrets — never commit (contains machine IDs, hostnames, server keys)
+book.json
+rustdesk_address_book.json
+rustdesk_address_book.csv
+tag_rules.json
+
+# Runtime
+serve.log
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store

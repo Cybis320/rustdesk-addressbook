@@ -1,0 +1,6 @@
+[
+  ["(^web|nginx|apache|^srv)", "Servers"],
+  ["(^db|postgres|mysql|maria)", "Databases"],
+  ["(raspberrypi|^pi\\d)", "Raspberry Pi"],
+  ["(^win|desktop|laptop|workstation)", "Workstations"]
+]

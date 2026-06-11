@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RustDesk Address Book</title><style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{font:15px/1.4 -apple-system,system-ui,sans-serif;margin:0;background:#16181d;color:#e6e6e6}
+header{position:sticky;top:0;z-index:5;background:#16181dee;backdrop-filter:blur(8px);padding:14px 22px;border-bottom:1px solid #2a2d35}
+h1{margin:0 0 10px;font-size:18px;font-weight:650}
+h1 small{color:#777;font-weight:400;font-size:13px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#q{flex:1;min-width:200px;max-width:380px;padding:9px 12px;border-radius:9px;border:1px solid #333;background:#1f2127;color:#fff;font-size:14px}
+#live{font-size:12px;color:#9aa;white-space:nowrap}
+#sort{width:auto;padding:8px 10px;border-radius:9px;border:1px solid #333;background:#262a33;color:#e6e6e6;font:inherit;font-size:13px;cursor:pointer}
+#sort:hover{border-color:#3d76d6}
+#live b{color:#39d353}
+button{font:inherit;cursor:pointer;border-radius:9px;border:1px solid #333;background:#262a33;color:#e6e6e6;padding:8px 13px}
+button:hover{border-color:#3d76d6}
+.btn-primary{background:#2f6fe0;border-color:#2f6fe0;color:#fff;font-weight:600}
+.btn-primary:hover{background:#3a7af0}
+main{padding:18px 22px 70px}
+section{margin-bottom:26px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#cfcfcf;border-left:3px solid;padding-left:9px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+h2 small{color:#888;font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px}
+.peer{position:relative;background:#1f2127;border:1px solid #2c2f37;border-radius:11px;transition:.12s}
+.peer:hover{background:#262a33;border-color:#3d76d6;transform:translateY(-1px)}
+.peer.alt{border-style:dashed}
+.peer.offline{opacity:.5}.peer.offline:hover{opacity:1}
+.body{display:flex;flex-direction:column;gap:2px;padding:11px 13px 11px 28px;text-decoration:none;color:inherit}
+.st{position:absolute;left:11px;top:14px;width:9px;height:9px;border-radius:50%;background:#555}
+.online .st{background:#39d353;box-shadow:0 0 7px #39d35388}
+.offline .st{background:#4a4d55}
+.alias{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:8px}
+.meta{font-size:12px;color:#8b8f99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:8px}
+.tools{position:absolute;top:6px;right:6px;display:flex;gap:1px;opacity:0;transition:.12s;background:#262a33;border-radius:8px}
+.peer:hover .tools{opacity:1}
+.tools .ico{background:#22252c}
+.tools .ico:hover{background:#30343d}
+.empty{color:#777;padding:40px 0;text-align:center}
+.backdrop{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:20}
+.backdrop.show{display:flex}
+.modal{background:#1d2027;border:1px solid #353a45;border-radius:14px;padding:22px;width:min(440px,92vw);max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 14px}
+label{display:block;font-size:12px;color:#9aa;margin:11px 0 4px}
+input,select{width:100%;padding:9px 11px;border-radius:8px;border:1px solid #383d47;background:#15171c;color:#fff;font-size:14px}
+.hint{font-size:11px;color:#71757f;margin-top:4px}
+.err{color:#ff6b6b;font-size:13px;min-height:18px;margin-top:10px}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.hide{display:none}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:#2f6fe0;color:#fff;padding:11px 18px;border-radius:10px;font-size:14px;box-shadow:0 6px 20px #0007;opacity:0;transition:.25s;z-index:30;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.warn{background:#444a55}
+.legend{margin-top:9px;font-size:11.5px;color:#71757f}
+.legend b{color:#9aa;font-weight:600}
+h2{cursor:default}
+.tagname{cursor:default;padding:1px 3px;border-radius:4px}
+.cdot{cursor:pointer;border:1px solid #ffffff33}
+.htools{display:inline-flex;gap:1px;margin-left:5px;opacity:0;transition:.12s}
+section:hover .htools{opacity:1}
+.ico{display:inline-flex;align-items:center;justify-content:center;border:none;background:none;color:#9aa;cursor:pointer;padding:3px;border-radius:6px}
+.ico:hover{background:#ffffff14;color:#e6e6e6}
+.ico.danger:hover{color:#ff7b7b}
+.ico svg{display:block}
+section.drop>h2{outline:2px dashed #3d76d6;outline-offset:3px;border-radius:6px}
+.peer{cursor:grab}
+.peer.dragging{opacity:.4}
+.peer .body{cursor:inherit}
+.depth1>h2{margin-left:18px}.depth2>h2{margin-left:36px}.depth3>h2{margin-left:54px}
+.depth1>.grid,.depth2>.grid,.depth3>.grid{margin-left:18px}
+.untagged>h2{color:#80858f}
+.chev{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;cursor:pointer;color:#aab;font-size:15px;line-height:1;user-select:none;transition:.12s}
+.chev:hover{color:#fff;background:#ffffff14}
+h2 .cdot{cursor:pointer}
+section.collapsed>.grid{display:none}
+section.folded{display:none}
+section.collapsed>h2{opacity:.82}
+</style></head><body>
+<header>
+  <h1>RustDesk Address Book <small id="count"></small></h1>
+  <div class="row">
+    <input id="q" placeholder="Filter by name, host, or id…" autofocus>
+    <span id="live">status: connecting…</span>
+    <select id="sort" title="Sort machines within each tag">
+      <option value="alias">Sort: Display name</option>
+      <option value="hostname">Sort: Hostname</option>
+      <option value="recent">Sort: Recently accessed</option>
+    </select>
+    <button id="resync" title="Pull in machines you've connected to in RustDesk since">⟲ Re-sync</button>
+    <button id="newtag" title="Use Parent/Child for nesting">+ New tag</button>
+    <button class="btn-primary" id="add">+ Add machine</button>
+  </div>
+  <div class="legend">Drag a card onto a tag to <b>move</b> it · hold <b>⌘/Ctrl/Alt</b> while dragging to <b>add</b> it (multi-tag) · hover a tag or card for <b>✎ edit</b> / <b>🗑 delete</b> · click a tag's dot to recolor · click a header to fold</div>
+</header>
+<input type="color" id="colorpick" style="position:fixed;left:-9999px">
+<div id="toast"></div>
+<main id="main"></main>
+
+<div class="backdrop" id="backdrop"><div class="modal">
+  <h3 id="m-title">Add machine</h3>
+  <input type="hidden" id="f-orig">
+  <label>RustDesk ID *</label><input id="f-id" inputmode="numeric" placeholder="123456789">
+  <label>Alias (display name)</label><input id="f-alias" placeholder="office-pc">
+  <div class="row" style="gap:10px">
+    <div style="flex:1"><label>Hostname</label><input id="f-hostname"></div>
+    <div style="flex:1"><label>Username</label><input id="f-username"></div>
+  </div>
+  <label>Server</label><select id="f-server"></select>
+  <div id="f-newsrv" class="hide">
+    <label>New server host</label><input id="f-server-new" placeholder="rustdesk.example.com">
+    <label>Server key</label><input id="f-key" placeholder="base64 key (blank if server has no key)">
+  </div>
+  <label>Tags (comma-separated)</label><input id="f-tags" placeholder="ProCam-SFF">
+  <div class="hint">Leave tags blank to auto-classify from hostname.</div>
+  <div class="err" id="f-err"></div>
+  <div class="actions">
+    <button id="f-cancel">Cancel</button>
+    <button class="btn-primary" id="f-save">Save</button>
+  </div>
+</div></div>
+
+<script>
+const ORDER=["ProCam-SFF","EliteCam","USV","RaspberryPi","Workstation"];
+const KNOWN={"ProCam-SFF":"#1976D2","EliteCam":"#388E3C","USV":"#F57C00","RaspberryPi":"#C2185B","Workstation":"#7B1FA2"};
+let book={default_server:"",servers:[],peers:[]}, stat={};
+let collapsed=new Set(JSON.parse(localStorage.getItem('rdab_collapsed')||'[]'));
+let sortMode=localStorage.getItem('rdab_sort')||'alias';
+const $=s=>document.querySelector(s), el=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e;};
+
+function color(tag){if(KNOWN[tag])return KNOWN[tag];let h=0;for(const c of tag)h=(h*31+c.charCodeAt(0))%360;return`hsl(${h},55%,48%)`;}
+async function api(method,path,body){
+  const r=await fetch(path,{method,headers:body?{'Content-Type':'application/json'}:{},
+    body:body?JSON.stringify(body):undefined,cache:'no-store'});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||r.status);return j;
+}
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ICON={
+  edit:'<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>',
+  trash:'<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>',
+};
+function ico(kind,title,onclick,danger){
+  const b=el('button','ico'+(danger?' danger':''));b.innerHTML=ICON[kind];b.title=title;
+  b.onclick=onclick;b.draggable=false;return b;
+}
+function tagColor(t){return (book.tag_colors&&book.tag_colors[t])||color(t);}
+function peersWith(t){return book.peers.filter(p=>(p.tags||[]).includes(t));}
+function sortPeers(arr){
+  const by=sortMode;
+  return arr.slice().sort((a,b)=>{
+    if(by==='recent') return (b.last||0)-(a.last||0)               // most recent first
+       || a.alias.toLowerCase().localeCompare(b.alias.toLowerCase());
+    const ka=(by==='hostname'?a.hostname||a.alias:a.alias).toLowerCase();
+    const kb=(by==='hostname'?b.hostname||b.alias:b.alias).toLowerCase();
+    return ka.localeCompare(kb);
+  });
+}
+function ago(epoch){
+  if(!epoch) return 'never';
+  const s=Date.now()/1000-epoch;
+  if(s<90) return 'just now';
+  const m=s/60; if(m<90) return Math.round(m)+'m ago';
+  const h=m/60; if(h<36) return Math.round(h)+'h ago';
+  const d=h/24; if(d<14) return Math.round(d)+'d ago';
+  const w=d/7; if(w<9) return Math.round(w)+'w ago';
+  return Math.round(d/30.4)+'mo ago';
+}
+
+function render(){
+  const m=$('#main');m.innerHTML='';
+  $('#count').textContent=`${book.peers.length} machines`;
+  if(!book.peers.length){m.innerHTML='<div class="empty">No machines yet — click “+ Add machine”.</div>';return;}
+  // one section per registered tag (hierarchical order from the server)
+  for(const t of (book.tags||[])) m.appendChild(section(t,peersWith(t),false));
+  const untagged=book.peers.filter(p=>!(p.tags||[]).length);
+  if(untagged.length||!(book.tags||[]).length) m.appendChild(section('',untagged,true));
+  applyStatus();applyFilter();
+}
+function section(tag,peers,isUntagged){
+  const depth=isUntagged?0:tag.split('/').length-1;
+  const leaf=isUntagged?'Untagged':tag.split('/').pop();
+  const c=isUntagged?'#80858f':tagColor(tag);
+  const sec=el('section','depth'+Math.min(depth,3)+(isUntagged?' untagged':''));
+  sec.dataset.tag=tag;sec.dataset.untagged=isUntagged?'1':'';
+  const h=el('h2');h.style.borderColor=c;
+  const key=isUntagged?'__untagged__':tag;
+  const chev=el('span','chev');chev.textContent=collapsed.has(key)?'▸':'▾';chev.title='Collapse / expand';
+  const dot=el('span','cdot');dot.style.cssText=`width:11px;height:11px;border-radius:50%;background:${c};display:inline-block`;
+  const name=el('span','tagname');name.textContent=leaf;name.title=isUntagged?'':tag;
+  const cnt=el('small');cnt.textContent=peers.length;
+  h.append(chev,dot,name,cnt);
+  h.onclick=e=>{if(e.target.closest('.cdot,.htools'))return;toggleCollapse(key);};
+  if(!isUntagged){
+    dot.title='Recolor';dot.onclick=()=>pickColor(tag);
+    const tools=el('span','htools');
+    tools.append(
+      ico('edit','Rename tag',e=>{e.stopPropagation();renameTag(tag);}),
+      ico('trash','Delete tag',e=>{e.stopPropagation();deleteTag(tag);},true));
+    h.append(tools);
+  }
+  sec.appendChild(h);
+  const grid=el('div','grid');
+  sortPeers(peers).forEach(p=>grid.appendChild(card(p,tag)));
+  sec.appendChild(grid);
+  // drop target
+  sec.addEventListener('dragover',e=>{if(!drag)return;e.preventDefault();
+    e.dataTransfer.dropEffect=addMode(e)?'copy':'move';sec.classList.add('drop');});
+  sec.addEventListener('dragleave',e=>{if(!sec.contains(e.relatedTarget))sec.classList.remove('drop');});
+  sec.addEventListener('drop',e=>{e.preventDefault();sec.classList.remove('drop');onDrop(tag,isUntagged,addMode(e));});
+  return sec;
+}
+function card(p,inTag){
+  const alt=p.server&&p.server!==book.default_server;
+  const d=el('div','peer'+(alt?' alt':''));d.dataset.id=p.id;d.dataset.tag=inTag||'';
+  d.dataset.s=(p.alias+' '+p.hostname+' '+p.id+' '+(p.tags||[]).join(' ')).toLowerCase();
+  let sub=`${p.username?p.username+'@':''}${p.hostname||'—'}`;
+  if(alt)sub+=' · '+p.server;
+  if((p.tags||[]).length>1)sub+=' · 🏷'+p.tags.length;
+  if(sortMode==='recent')sub+=' · '+ago(p.last);
+  const a=el('a','body');a.href=p.link;a.draggable=false;
+  a.innerHTML=`<span class="st"></span><span class="alias" title="${esc(p.alias)}">${esc(p.alias)}</span><span class="meta" title="${esc(sub)}">${esc(sub)}</span>`;
+  const tools=el('div','tools');
+  tools.append(
+    ico('edit','Edit',e=>{e.preventDefault();openForm(p);}),
+    ico('trash','Delete',e=>{e.preventDefault();del(p);},true));
+  d.append(a,tools);
+  d.draggable=true;
+  d.addEventListener('dragstart',e=>{drag={id:p.id,from:inTag||''};d.classList.add('dragging');
+    e.dataTransfer.effectAllowed='copyMove';e.dataTransfer.setData('text/plain',p.id);});
+  d.addEventListener('dragend',()=>{drag=null;d.classList.remove('dragging');
+    document.querySelectorAll('.drop').forEach(s=>s.classList.remove('drop'));});
+  return d;
+}
+
+// ---- drag & drop / tag membership ----
+let drag=null;
+const addMode=e=>e.ctrlKey||e.metaKey||e.altKey;
+async function onDrop(targetTag,isUntagged,add){
+  if(!drag)return;
+  const {id,from}=drag;
+  let body;
+  if(isUntagged){            // dropping onto Untagged just removes the source tag
+    if(!from)return; body={remove:[from]};
+  }else if(add){             // ⌘/Ctrl/Alt: add membership, keep existing
+    if((book.peers.find(p=>p.id===id)?.tags||[]).includes(targetTag))return;
+    body={add:[targetTag]};
+  }else{                     // plain: move from source tag to target
+    if(from===targetTag)return;
+    body={add:[targetTag],remove:from?[from]:[]};
+  }
+  try{book=await api('POST','/api/peers/'+encodeURIComponent(id)+'/tags',body);render();}
+  catch(e){toast('Failed: '+e.message,true);}
+}
+
+// ---- tag management ----
+async function newTag(){
+  const name=prompt('New tag name (use Parent/Child for nesting):','');
+  if(!name)return;
+  try{book=await api('POST','/api/tags',{name});render();toast('Created “'+name+'”');}
+  catch(e){toast(e.message,true);}
+}
+async function renameTag(old){
+  const next=prompt('Rename tag (renames its sub-tags too):',old);
+  if(!next||next===old)return;
+  try{book=await api('PUT','/api/tags',{old,new:next});render();}
+  catch(e){toast(e.message,true);}
+}
+async function deleteTag(name){
+  const kids=(book.tags||[]).filter(t=>t.startsWith(name+'/')).length;
+  if(!confirm(`Delete tag “${name}”${kids?` and its ${kids} sub-tag(s)`:''}? Machines keep existing; they just lose this label.`))return;
+  try{book=await api('DELETE','/api/tags',{name});render();}
+  catch(e){toast(e.message,true);}
+}
+function pickColor(tag){
+  const cp=$('#colorpick');cp.value=toHex(tagColor(tag));
+  cp.oninput=null;
+  cp.onchange=async()=>{try{book=await api('PUT','/api/tags/color',{name:tag,color:cp.value});render();}catch(e){toast(e.message,true);}};
+  cp.click();
+}
+function toHex(c){if(/^#[0-9a-f]{6}$/i.test(c))return c;
+  const m=c.match(/hsl\((\d+)/i);return m?'#888888':'#888888';}
+
+function applyStatus(){
+  let on=0;
+  document.querySelectorAll('.peer').forEach(d=>{
+    const s=stat[d.dataset.id];
+    d.classList.toggle('online',s===true);d.classList.toggle('offline',s===false);
+    const dot=d.querySelector('.st');dot.title=s===true?'online':s===false?'offline':'unknown';
+    if(s===true)on++;
+  });
+  const t=new Date().toLocaleTimeString();
+  $('#live').innerHTML=Object.keys(stat).length?`<b>${on}</b> / ${book.peers.length} online · ${t}`:'status: …';
+}
+function applyFilter(){
+  const v=$('#q').value.trim().toLowerCase();
+  document.querySelectorAll('.peer').forEach(d=>d.classList.toggle('hide',v&&!d.dataset.s.includes(v)));
+  if(v){                         // searching: ignore collapse so matches always show
+    document.querySelectorAll('section').forEach(s=>{
+      s.classList.remove('collapsed','folded');
+      s.classList.toggle('hide',!s.querySelector('.peer:not(.hide)'));
+    });
+  }else{
+    document.querySelectorAll('section').forEach(s=>s.classList.remove('hide'));
+    applyCollapse();
+  }
+}
+function ancestorCollapsed(tag){
+  const parts=tag.split('/');
+  for(let i=1;i<parts.length;i++) if(collapsed.has(parts.slice(0,i).join('/'))) return true;
+  return false;
+}
+function applyCollapse(){
+  document.querySelectorAll('section').forEach(s=>{
+    const un=s.dataset.untagged==='1', tag=s.dataset.tag, key=un?'__untagged__':tag;
+    s.classList.toggle('collapsed',collapsed.has(key));
+    s.classList.toggle('folded',!un&&ancestorCollapsed(tag));
+    const ch=s.querySelector('.chev'); if(ch)ch.textContent=collapsed.has(key)?'▸':'▾';
+  });
+}
+function toggleCollapse(key){
+  collapsed.has(key)?collapsed.delete(key):collapsed.add(key);
+  localStorage.setItem('rdab_collapsed',JSON.stringify([...collapsed]));
+  applyCollapse();
+}
+
+// ---- form ----
+function fillServers(sel){
+  const s=$('#f-server');s.innerHTML='';
+  book.servers.forEach(h=>{const o=el('option');o.value=h;o.textContent=h+(h===book.default_server?' (default)':'');s.appendChild(o);});
+  const o=el('option');o.value='__new__';o.textContent='+ add new server…';s.appendChild(o);
+  s.value=sel&&book.servers.includes(sel)?sel:book.default_server;
+  toggleNewSrv();
+}
+function toggleNewSrv(){$('#f-newsrv').classList.toggle('hide',$('#f-server').value!=='__new__');}
+function openForm(p){
+  $('#m-title').textContent=p?'Edit machine':'Add machine';
+  $('#f-orig').value=p?p.id:'';
+  $('#f-id').value=p?p.id:'';$('#f-alias').value=p?p.alias:'';
+  $('#f-hostname').value=p?p.hostname:'';$('#f-username').value=p?p.username:'';
+  $('#f-tags').value=p?(p.tags||[]).join(', '):'';
+  $('#f-server-new').value='';$('#f-key').value='';$('#f-err').textContent='';
+  fillServers(p?p.server:null);
+  $('#backdrop').classList.add('show');$('#f-id').focus();
+}
+function closeForm(){$('#backdrop').classList.remove('show');}
+async function saveForm(){
+  let server=$('#f-server').value;
+  const payload={
+    id:$('#f-id').value,alias:$('#f-alias').value,hostname:$('#f-hostname').value,
+    username:$('#f-username').value,platform:'',tags:$('#f-tags').value,
+    server:server==='__new__'?$('#f-server-new').value:server,
+    key:server==='__new__'?$('#f-key').value:undefined,
+  };
+  const orig=$('#f-orig').value;
+  try{
+    const res=orig?await api('PUT','/api/peers/'+encodeURIComponent(orig),payload)
+                  :await api('POST','/api/peers',payload);
+    book=res;closeForm();render();refreshStatus();
+  }catch(e){$('#f-err').textContent=e.message;}
+}
+async function del(p){
+  if(!confirm(`Delete “${p.alias}” (${p.id})?`))return;
+  book=await api('DELETE','/api/peers/'+encodeURIComponent(p.id));render();
+}
+
+async function load(){book=await api('GET','/api/book');render();}
+async function refreshStatus(){
+  try{stat=await api('GET','/status');}catch(e){stat={};}
+  applyStatus();
+}
+let toastT;
+function toast(msg,warn){const t=$('#toast');t.textContent=msg;t.classList.toggle('warn',!!warn);
+  t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3200);}
+async function resync(){
+  const b=$('#resync');b.disabled=true;b.textContent='⟲ Syncing…';
+  try{
+    const r=await api('POST','/api/resync');book=r.book;render();refreshStatus();
+    const n=r.added.length;
+    toast(n?`Added ${n}: ${r.added.map(p=>p.alias).join(', ')}`:'Already up to date — no new machines',!n);
+  }catch(e){toast('Re-sync failed: '+e.message,true);}
+  finally{b.disabled=false;b.textContent='⟲ Re-sync';}
+}
+$('#sort').value=sortMode;
+$('#sort').onchange=e=>{sortMode=e.target.value;localStorage.setItem('rdab_sort',sortMode);render();};
+$('#q').addEventListener('input',applyFilter);
+$('#resync').onclick=resync;
+$('#newtag').onclick=newTag;
+$('#add').onclick=()=>openForm(null);
+$('#f-cancel').onclick=closeForm;$('#f-save').onclick=saveForm;
+$('#f-server').onchange=toggleNewSrv;
+let downOnBackdrop=false;   // only close if the press STARTED on the backdrop
+$('#backdrop').addEventListener('mousedown',e=>{downOnBackdrop=e.target.id==='backdrop';});
+$('#backdrop').addEventListener('click',e=>{if(e.target.id==='backdrop'&&downOnBackdrop)closeForm();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#backdrop').classList.contains('show'))closeForm();});
+
+load().then(refreshStatus);
+setInterval(refreshStatus,15000);
+</script></body></html>
