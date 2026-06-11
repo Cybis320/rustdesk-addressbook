@@ -75,12 +75,30 @@ h2 .cdot{cursor:pointer}
 section.collapsed>.grid{display:none}
 section.folded{display:none}
 section.collapsed>h2{opacity:.82}
+#bell{position:relative;font-size:15px;padding:7px 10px}
+#badge{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e0483d;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center;display:none}
+#badge.show{display:block}
+#notif{position:fixed;top:60px;right:22px;width:330px;max-height:70vh;background:#1d2027;border:1px solid #353a45;border-radius:12px;box-shadow:0 12px 32px #000a;z-index:25;display:flex;flex-direction:column;overflow:hidden}
+.nhead{display:flex;align-items:center;gap:8px;padding:11px 13px;border-bottom:1px solid #2c2f37;font-weight:600;font-size:14px}
+.ntoggles{margin-left:auto;display:flex;gap:5px}
+.ntog{font-size:11.5px;padding:4px 8px;background:#262a33}
+.ntog.on{background:#2f6fe0;border-color:#2f6fe0;color:#fff}
+#nlist{overflow:auto;padding:4px 0}
+.nrow{display:flex;align-items:center;gap:8px;padding:8px 13px;font-size:13px}
+.nrow .ndot{width:8px;height:8px;border-radius:50%;flex:none}
+.nrow.up .ndot{background:#39d353}.nrow.down .ndot{background:#e0483d}
+.nrow .nname{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nrow .nwhen{margin-left:auto;color:#71757f;font-size:11px;white-space:nowrap}
+.nempty{color:#71757f;text-align:center;padding:26px 0;font-size:13px}
+.nfoot{border-top:1px solid #2c2f37;padding:7px 10px;text-align:right}
+.nfoot button{font-size:12px;padding:5px 10px}
 </style></head><body>
 <header>
   <h1>RustDesk Address Book <small id="count"></small></h1>
   <div class="row">
     <input id="q" placeholder="Filter by name, host, or id…" autofocus>
     <span id="live">status: connecting…</span>
+    <button id="bell" title="Notifications">🔔<span id="badge"></span></button>
     <select id="sort" title="Sort machines within each tag">
       <option value="alias">Sort: Display name</option>
       <option value="hostname">Sort: Hostname</option>
@@ -93,6 +111,16 @@ section.collapsed>h2{opacity:.82}
   <div class="legend">Drag a card onto a tag to <b>move</b> it · hold <b>⌘/Ctrl/Alt</b> while dragging to <b>add</b> it (multi-tag) · hover a tag or card for <b>✎ edit</b> / <b>🗑 delete</b> · click a tag's dot to recolor · click a header to fold</div>
 </header>
 <input type="color" id="colorpick" style="position:fixed;left:-9999px">
+<div id="notif" class="hide">
+  <div class="nhead">Notifications
+    <span class="ntoggles">
+      <button id="t-sound" class="ntog" title="Play a sound on status changes">🔊 Sound</button>
+      <button id="t-desk" class="ntog" title="Show macOS/desktop notifications">🖥 Desktop</button>
+    </span>
+  </div>
+  <div id="nlist"></div>
+  <div class="nfoot"><button id="nclear">Clear</button></div>
+</div>
 <div id="toast"></div>
 <main id="main"></main>
 
@@ -125,6 +153,9 @@ const KNOWN={"ProCam-SFF":"#1976D2","EliteCam":"#388E3C","USV":"#F57C00","Raspbe
 let book={default_server:"",servers:[],peers:[]}, stat={};
 let collapsed=new Set(JSON.parse(localStorage.getItem('rdab_collapsed')||'[]'));
 let sortMode=localStorage.getItem('rdab_sort')||'alias';
+let prevStat=null, events=[], unseen=0, audioCtx=null;
+let soundOn=localStorage.getItem('rdab_sound')==='1';
+let deskOn=localStorage.getItem('rdab_desk')==='1';
 const $=s=>document.querySelector(s), el=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e;};
 
 function color(tag){if(KNOWN[tag])return KNOWN[tag];let h=0;for(const c of tag)h=(h*31+c.charCodeAt(0))%360;return`hsl(${h},55%,48%)`;}
@@ -365,8 +396,64 @@ async function del(p){
 
 async function load(){book=await api('GET','/api/book');render();}
 async function refreshStatus(){
-  try{stat=await api('GET','/status');}catch(e){stat={};}
+  let next=null;
+  try{next=await api('GET','/status');}catch(e){}
+  if(next&&Object.keys(next).length){
+    if(prevStat)notifyChanges(prevStat,next);   // skip the first poll (no baseline)
+    prevStat=next;stat=next;
+  }
   applyStatus();
+}
+const aliasOf=id=>{const p=book.peers.find(x=>x.id===id);return p?p.alias:id;};
+function notifyChanges(old,next){
+  const up=[],down=[];
+  for(const id in next){
+    if(!(id in old))continue;
+    if(next[id]&&!old[id])up.push(id);
+    else if(!next[id]&&old[id])down.push(id);
+  }
+  if(!up.length&&!down.length)return;
+  const now=Date.now()/1000;
+  [...up.map(id=>[id,true]),...down.map(id=>[id,false])].forEach(([id,on])=>
+    events.unshift({id,name:aliasOf(id),on,t:now}));
+  events=events.slice(0,60);
+  unseen+=up.length+down.length;
+  if($('#notif').classList.contains('hide'))updateBadge(); else {unseen=0;updateBadge();renderNotif();}
+  const msg=[up.length?'🟢 '+up.map(aliasOf).join(', ')+' came online':'',
+             down.length?'🔴 '+down.map(aliasOf).join(', ')+' went offline':''].filter(Boolean).join('   ');
+  toast(msg,down.length>0&&!up.length);
+  if(soundOn){if(up.length)beep('up');if(down.length)setTimeout(()=>beep('down'),up.length?260:0);}
+  if(deskOn)desktopNotify(up.map(aliasOf),down.map(aliasOf));
+}
+function beep(kind){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended')audioCtx.resume();
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime;
+    o.type='sine';o.connect(g);g.connect(audioCtx.destination);
+    if(kind==='up'){o.frequency.setValueAtTime(620,t);o.frequency.exponentialRampToValueAtTime(940,t+0.12);}
+    else{o.frequency.setValueAtTime(480,t);o.frequency.exponentialRampToValueAtTime(280,t+0.16);}
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.16,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
+    o.start(t);o.stop(t+0.32);
+  }catch(e){}
+}
+function desktopNotify(up,down){
+  if(!('Notification'in window)||Notification.permission!=='granted')return;
+  const parts=[];if(up.length)parts.push('Online: '+up.join(', '));if(down.length)parts.push('Offline: '+down.join(', '));
+  try{new Notification('RustDesk Address Book',{body:parts.join('\n')});}catch(e){}
+}
+function updateBadge(){const b=$('#badge');b.textContent=unseen>99?'99+':unseen;b.classList.toggle('show',unseen>0);}
+function renderNotif(){
+  const l=$('#nlist');
+  if(!events.length){l.innerHTML='<div class="nempty">No status changes yet</div>';return;}
+  l.innerHTML='';
+  events.forEach(e=>{
+    const r=el('div','nrow '+(e.on?'up':'down'));
+    r.innerHTML=`<span class="ndot"></span><span class="nname">${esc(e.name)}</span>`+
+      `<span class="nwhen">${e.on?'online':'offline'} · ${ago(e.t)}</span>`;
+    l.appendChild(r);
+  });
 }
 let toastT;
 function toast(msg,warn){const t=$('#toast');t.textContent=msg;t.classList.toggle('warn',!!warn);
@@ -382,6 +469,24 @@ async function resync(){
 }
 $('#sort').value=sortMode;
 $('#sort').onchange=e=>{sortMode=e.target.value;localStorage.setItem('rdab_sort',sortMode);render();};
+// ---- notifications ----
+function syncTogs(){$('#t-sound').classList.toggle('on',soundOn);$('#t-desk').classList.toggle('on',deskOn);}
+syncTogs();updateBadge();
+$('#bell').onclick=()=>{
+  const n=$('#notif');const showing=n.classList.toggle('hide');   // toggle returns new state of 'hide'
+  if(!showing){unseen=0;updateBadge();renderNotif();}
+};
+$('#t-sound').onclick=()=>{soundOn=!soundOn;localStorage.setItem('rdab_sound',soundOn?'1':'0');syncTogs();if(soundOn)beep('up');};
+$('#t-desk').onclick=async()=>{
+  if(!deskOn){
+    if(!('Notification'in window)){toast('Desktop notifications not supported here',true);return;}
+    const p=await Notification.requestPermission();
+    if(p!=='granted'){toast('Desktop notifications blocked by browser',true);return;}
+  }
+  deskOn=!deskOn;localStorage.setItem('rdab_desk',deskOn?'1':'0');syncTogs();
+};
+$('#nclear').onclick=()=>{events=[];unseen=0;updateBadge();renderNotif();};
+document.addEventListener('click',e=>{if(!e.target.closest('#notif,#bell'))$('#notif').classList.add('hide');});
 $('#q').addEventListener('input',applyFilter);
 $('#resync').onclick=resync;
 $('#newtag').onclick=newTag;
