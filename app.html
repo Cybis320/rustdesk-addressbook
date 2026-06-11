@@ -5,19 +5,20 @@
 :root{color-scheme:dark}
 *{box-sizing:border-box}
 body{font:15px/1.4 -apple-system,system-ui,sans-serif;margin:0;background:#16181d;color:#e6e6e6}
-header{position:sticky;top:0;z-index:5;background:#16181dee;backdrop-filter:blur(8px);padding:14px 22px;border-bottom:1px solid #2a2d35}
-h1{margin:0 0 10px;font-size:18px;font-weight:650}
-h1 small{color:#777;font-weight:400;font-size:13px}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-#q{flex:1;min-width:200px;max-width:380px;padding:9px 12px;border-radius:9px;border:1px solid #333;background:#1f2127;color:#fff;font-size:14px}
-#live{font-size:12px;color:#9aa;white-space:nowrap}
-#sort{width:auto;padding:8px 10px;border-radius:9px;border:1px solid #333;background:#262a33;color:#e6e6e6;font:inherit;font-size:13px;cursor:pointer}
-#sort:hover{border-color:#3d76d6}
-#live b{color:#39d353}
+header{position:sticky;top:0;z-index:15;background:#16181dee;backdrop-filter:blur(8px);padding:11px 18px;border-bottom:1px solid #2a2d35}
+.bar{display:flex;gap:9px;align-items:center}
+.brand{font-size:15px;font-weight:650;white-space:nowrap}
+.brand small{color:#777;font-weight:400;font-size:12px;margin-left:4px}
+#q{flex:1;min-width:120px;padding:8px 12px;border-radius:9px;border:1px solid #333;background:#1f2127;color:#fff;font-size:14px}
+.pill{font-size:12px;color:#9aa;white-space:nowrap;background:#22252c;border:1px solid #2c2f37;border-radius:20px;padding:5px 11px}
+.pill b{color:#39d353}
 button{font:inherit;cursor:pointer;border-radius:9px;border:1px solid #333;background:#262a33;color:#e6e6e6;padding:8px 13px}
 button:hover{border-color:#3d76d6}
 .btn-primary{background:#2f6fe0;border-color:#2f6fe0;color:#fff;font-weight:600}
 .btn-primary:hover{background:#3a7af0}
+.iconbtn{padding:8px 11px;font-size:15px;line-height:1}
+.iconbtn.spin{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 main{padding:18px 22px 70px}
 section{margin-bottom:26px}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#cfcfcf;border-left:3px solid;padding-left:9px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
@@ -51,8 +52,6 @@ input,select{width:100%;padding:9px 11px;border-radius:8px;border:1px solid #383
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:#2f6fe0;color:#fff;padding:11px 18px;border-radius:10px;font-size:14px;box-shadow:0 6px 20px #0007;opacity:0;transition:.25s;z-index:30;pointer-events:none}
 #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 #toast.warn{background:#444a55}
-.legend{margin-top:9px;font-size:11.5px;color:#71757f}
-.legend b{color:#9aa;font-weight:600}
 h2{cursor:default}
 .tagname{cursor:default;padding:1px 3px;border-radius:4px}
 .cdot{cursor:pointer;border:1px solid #ffffff33}
@@ -75,10 +74,23 @@ h2 .cdot{cursor:pointer}
 section.collapsed>.grid{display:none}
 section.folded{display:none}
 section.collapsed>h2{opacity:.82}
-#bell{position:relative;font-size:15px;padding:7px 10px}
+#bell{position:relative}
 #badge{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e0483d;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center;display:none}
 #badge.show{display:block}
-#notif{position:fixed;top:60px;right:22px;width:330px;max-height:70vh;background:#1d2027;border:1px solid #353a45;border-radius:12px;box-shadow:0 12px 32px #000a;z-index:25;display:flex;flex-direction:column;overflow:hidden}
+/* shared dropdown popovers (notifications + overflow menu) — no #id sets
+   display, so .pop.hide can reliably hide them */
+.pop{position:fixed;top:54px;right:18px;display:flex;flex-direction:column;background:#1d2027;border:1px solid #353a45;border-radius:12px;box-shadow:0 14px 34px #000b;z-index:30;overflow:hidden}
+.pop.hide{display:none}
+#notif{width:330px;max-height:70vh}
+#moremenu{width:222px;padding:6px}
+.mi{display:block;width:100%;text-align:left;background:none;border:none;border-radius:7px;padding:8px 10px;font-size:13px;color:#e6e6e6}
+.mi:hover{background:#2b2f38}
+.mlabel{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80858f;padding:9px 10px 3px}
+.msort.active{color:#fff}
+.msort.active::after{content:'✓';color:#39d353;float:right}
+.msep{height:1px;background:#2c2f37;margin:6px 4px}
+.tips{margin:8px 0 0;padding-left:18px;line-height:1.75;font-size:13.5px;color:#cdd2da}
+.tips b{color:#fff}.tips code{background:#15171c;padding:1px 5px;border-radius:4px}
 .nhead{display:flex;align-items:center;gap:8px;padding:11px 13px;border-bottom:1px solid #2c2f37;font-weight:600;font-size:14px}
 .ntoggles{margin-left:auto;display:flex;gap:5px}
 .ntog{font-size:11.5px;padding:4px 8px;background:#262a33}
@@ -94,33 +106,56 @@ section.collapsed>h2{opacity:.82}
 .nfoot button{font-size:12px;padding:5px 10px}
 </style></head><body>
 <header>
-  <h1>RustDesk Address Book <small id="count"></small></h1>
-  <div class="row">
-    <input id="q" placeholder="Filter by name, host, or id…" autofocus>
-    <span id="live">status: connecting…</span>
-    <button id="bell" title="Notifications">🔔<span id="badge"></span></button>
-    <select id="sort" title="Sort machines within each tag">
-      <option value="alias">Sort: Display name</option>
-      <option value="hostname">Sort: Hostname</option>
-      <option value="recent">Sort: Recently accessed</option>
-    </select>
-    <button id="resync" title="Pull in machines you've connected to in RustDesk since">⟲ Re-sync</button>
-    <button id="newtag" title="Use Parent/Child for nesting">+ New tag</button>
+  <div class="bar">
+    <div class="brand">RustDesk&nbsp;Address&nbsp;Book <small id="count"></small></div>
+    <input id="q" placeholder="Search machines…" autofocus>
+    <span id="live" class="pill" title="Live status">…</span>
     <button class="btn-primary" id="add">+ Add machine</button>
+    <button class="iconbtn" id="resync" title="Re-sync: pull in machines you've connected to since">⟳</button>
+    <button class="iconbtn" id="bell" title="Notifications">🔔<span id="badge"></span></button>
+    <button class="iconbtn" id="menu" title="More">⋯</button>
   </div>
-  <div class="legend">Drag a card onto a tag to <b>move</b> it · hold <b>⌘/Ctrl/Alt</b> while dragging to <b>add</b> it (multi-tag) · hover a tag or card for <b>✎ edit</b> / <b>🗑 delete</b> · click a tag's dot to recolor · click a header to fold</div>
 </header>
 <input type="color" id="colorpick" style="position:fixed;left:-9999px">
-<div id="notif" class="hide">
+
+<div id="moremenu" class="pop hide">
+  <button class="mi" id="m-newtag">＋ New tag…</button>
+  <div class="mlabel">Sort by</div>
+  <button class="mi msort" data-v="alias">Display name</button>
+  <button class="mi msort" data-v="hostname">Hostname</button>
+  <button class="mi msort" data-v="recent">Recently accessed</button>
+  <div class="msep"></div>
+  <button class="mi" id="m-expand">Expand all groups</button>
+  <button class="mi" id="m-collapse">Collapse all groups</button>
+  <div class="msep"></div>
+  <button class="mi" id="m-help">Tips &amp; shortcuts…</button>
+</div>
+
+<div id="notif" class="pop hide">
   <div class="nhead">Notifications
     <span class="ntoggles">
-      <button id="t-sound" class="ntog" title="Play a sound on status changes">🔊 Sound</button>
-      <button id="t-desk" class="ntog" title="Show macOS/desktop notifications">🖥 Desktop</button>
+      <button id="t-sound" class="ntog" title="Play a sound on status changes">🔊</button>
+      <button id="t-desk" class="ntog" title="Show desktop notifications">🖥</button>
     </span>
   </div>
   <div id="nlist"></div>
   <div class="nfoot"><button id="nclear">Clear</button></div>
 </div>
+
+<div class="backdrop" id="helpback"><div class="modal">
+  <h3>Tips &amp; shortcuts</h3>
+  <ul class="tips">
+    <li><b>Connect</b> — click a machine card.</li>
+    <li><b>Move to a tag</b> — drag a card onto a tag section.</li>
+    <li><b>Add to multiple tags</b> — hold <b>⌘ / Ctrl / Alt</b> while dragging.</li>
+    <li><b>Edit / delete</b> — hover a card or tag for the <b>✎ / 🗑</b> icons.</li>
+    <li><b>Recolor a tag</b> — click its color dot.</li>
+    <li><b>Fold a group</b> — click the tag header (or its ▸ chevron).</li>
+    <li><b>Nest tags</b> — name a tag <code>Parent/Child</code>.</li>
+  </ul>
+  <div class="actions"><button class="btn-primary" id="help-ok">Got it</button></div>
+</div></div>
+
 <div id="toast"></div>
 <main id="main"></main>
 
@@ -319,8 +354,9 @@ function applyStatus(){
     const dot=d.querySelector('.st');dot.title=s===true?'online':s===false?'offline':'unknown';
     if(s===true)on++;
   });
-  const t=new Date().toLocaleTimeString();
-  $('#live').innerHTML=Object.keys(stat).length?`<b>${on}</b> / ${book.peers.length} online · ${t}`:'status: …';
+  const t=new Date().toLocaleTimeString(),live=$('#live');
+  if(Object.keys(stat).length){live.innerHTML=`<b>${on}</b>/${book.peers.length} online`;live.title='Updated '+t;}
+  else live.textContent='…';
 }
 function applyFilter(){
   const v=$('#q').value.trim().toLowerCase();
@@ -459,23 +495,35 @@ let toastT;
 function toast(msg,warn){const t=$('#toast');t.textContent=msg;t.classList.toggle('warn',!!warn);
   t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3200);}
 async function resync(){
-  const b=$('#resync');b.disabled=true;b.textContent='⟲ Syncing…';
+  const b=$('#resync');b.disabled=true;b.classList.add('spin');
   try{
     const r=await api('POST','/api/resync');book=r.book;render();refreshStatus();
     const n=r.added.length;
     toast(n?`Added ${n}: ${r.added.map(p=>p.alias).join(', ')}`:'Already up to date — no new machines',!n);
   }catch(e){toast('Re-sync failed: '+e.message,true);}
-  finally{b.disabled=false;b.textContent='⟲ Re-sync';}
+  finally{b.disabled=false;b.classList.remove('spin');}
 }
-$('#sort').value=sortMode;
-$('#sort').onchange=e=>{sortMode=e.target.value;localStorage.setItem('rdab_sort',sortMode);render();};
-// ---- notifications ----
+function closePops(){$('#notif').classList.add('hide');$('#moremenu').classList.add('hide');}
+const saveCollapsed=()=>localStorage.setItem('rdab_collapsed',JSON.stringify([...collapsed]));
+
+// ---- overflow menu: sort / collapse / new tag / help ----
+function markSort(){document.querySelectorAll('.msort').forEach(b=>b.classList.toggle('active',b.dataset.v===sortMode));}
+document.querySelectorAll('.msort').forEach(b=>b.onclick=()=>{
+  sortMode=b.dataset.v;localStorage.setItem('rdab_sort',sortMode);markSort();render();closePops();});
+markSort();
+$('#m-expand').onclick=()=>{collapsed.clear();saveCollapsed();applyCollapse();closePops();};
+$('#m-collapse').onclick=()=>{[...(book.tags||[]),'__untagged__'].forEach(k=>collapsed.add(k));saveCollapsed();applyCollapse();closePops();};
+$('#m-newtag').onclick=()=>{closePops();newTag();};
+$('#m-help').onclick=()=>{closePops();$('#helpback').classList.add('show');};
+$('#help-ok').onclick=()=>$('#helpback').classList.remove('show');
+$('#helpback').addEventListener('mousedown',e=>{if(e.target.id==='helpback')$('#helpback').classList.remove('show');});
+
+// ---- notifications + menu popovers ----
 function syncTogs(){$('#t-sound').classList.toggle('on',soundOn);$('#t-desk').classList.toggle('on',deskOn);}
 syncTogs();updateBadge();
-$('#bell').onclick=()=>{
-  const n=$('#notif');const showing=n.classList.toggle('hide');   // toggle returns new state of 'hide'
-  if(!showing){unseen=0;updateBadge();renderNotif();}
-};
+$('#bell').onclick=e=>{e.stopPropagation();$('#moremenu').classList.add('hide');
+  const hidden=$('#notif').classList.toggle('hide');if(!hidden){unseen=0;updateBadge();renderNotif();}};
+$('#menu').onclick=e=>{e.stopPropagation();$('#notif').classList.add('hide');$('#moremenu').classList.toggle('hide');};
 $('#t-sound').onclick=()=>{soundOn=!soundOn;localStorage.setItem('rdab_sound',soundOn?'1':'0');syncTogs();if(soundOn)beep('up');};
 $('#t-desk').onclick=async()=>{
   if(!deskOn){
@@ -486,17 +534,18 @@ $('#t-desk').onclick=async()=>{
   deskOn=!deskOn;localStorage.setItem('rdab_desk',deskOn?'1':'0');syncTogs();
 };
 $('#nclear').onclick=()=>{events=[];unseen=0;updateBadge();renderNotif();};
-document.addEventListener('click',e=>{if(!e.target.closest('#notif,#bell'))$('#notif').classList.add('hide');});
+document.addEventListener('click',e=>{if(!e.target.closest('#notif,#moremenu,#bell,#menu'))closePops();});
 $('#q').addEventListener('input',applyFilter);
 $('#resync').onclick=resync;
-$('#newtag').onclick=newTag;
 $('#add').onclick=()=>openForm(null);
 $('#f-cancel').onclick=closeForm;$('#f-save').onclick=saveForm;
 $('#f-server').onchange=toggleNewSrv;
 let downOnBackdrop=false;   // only close if the press STARTED on the backdrop
 $('#backdrop').addEventListener('mousedown',e=>{downOnBackdrop=e.target.id==='backdrop';});
 $('#backdrop').addEventListener('click',e=>{if(e.target.id==='backdrop'&&downOnBackdrop)closeForm();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#backdrop').classList.contains('show'))closeForm();});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;
+  if($('#backdrop').classList.contains('show'))closeForm();
+  $('#helpback').classList.remove('show');closePops();});
 
 load().then(refreshStatus);
 setInterval(refreshStatus,15000);
