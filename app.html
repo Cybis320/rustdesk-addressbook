@@ -17,6 +17,7 @@ button:hover{border-color:#3d76d6}
 .btn-primary{background:#2f6fe0;border-color:#2f6fe0;color:#fff;font-weight:600}
 .btn-primary:hover{background:#3a7af0}
 .iconbtn{padding:8px 11px;font-size:15px;line-height:1}
+.iconbtn svg{display:block}
 .iconbtn.spin{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 main{padding:18px 22px 70px}
@@ -83,6 +84,7 @@ section.collapsed>h2{opacity:.82}
 .pop.hide{display:none}
 #notif{width:330px;max-height:70vh}
 #moremenu{width:222px;padding:6px}
+#sortmenu{width:200px;padding:6px}
 .mi{display:block;width:100%;text-align:left;background:none;border:none;border-radius:7px;padding:8px 10px;font-size:13px;color:#e6e6e6}
 .mi:hover{background:#2b2f38}
 .mlabel{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80858f;padding:9px 10px 3px}
@@ -111,6 +113,7 @@ section.collapsed>h2{opacity:.82}
     <input id="q" placeholder="Search machines…" autofocus>
     <span id="live" class="pill" title="Live status">…</span>
     <button class="btn-primary" id="add">+ Add machine</button>
+    <button class="iconbtn" id="sortbtn" title="Sort"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M2.5 4h11M2.5 8h7M2.5 12h3.5"/></svg></button>
     <button class="iconbtn" id="resync" title="Re-sync: pull in machines you've connected to since">⟳</button>
     <button class="iconbtn" id="bell" title="Notifications">🔔<span id="badge"></span></button>
     <button class="iconbtn" id="menu" title="More">⋯</button>
@@ -118,12 +121,15 @@ section.collapsed>h2{opacity:.82}
 </header>
 <input type="color" id="colorpick" style="position:fixed;left:-9999px">
 
-<div id="moremenu" class="pop hide">
-  <button class="mi" id="m-newtag">＋ New tag…</button>
+<div id="sortmenu" class="pop hide">
   <div class="mlabel">Sort by</div>
   <button class="mi msort" data-v="alias">Display name</button>
   <button class="mi msort" data-v="hostname">Hostname</button>
   <button class="mi msort" data-v="recent">Recently accessed</button>
+</div>
+
+<div id="moremenu" class="pop hide">
+  <button class="mi" id="m-newtag">＋ New tag…</button>
   <div class="msep"></div>
   <button class="mi" id="m-expand">Expand all groups</button>
   <button class="mi" id="m-collapse">Collapse all groups</button>
@@ -503,7 +509,9 @@ async function resync(){
   }catch(e){toast('Re-sync failed: '+e.message,true);}
   finally{b.disabled=false;b.classList.remove('spin');}
 }
-function closePops(){$('#notif').classList.add('hide');$('#moremenu').classList.add('hide');}
+const POPS=['#notif','#moremenu','#sortmenu'];
+function closePops(){POPS.forEach(p=>$(p).classList.add('hide'));}
+function togglePop(id){const willOpen=$(id).classList.contains('hide');closePops();if(willOpen)$(id).classList.remove('hide');return willOpen;}
 const saveCollapsed=()=>localStorage.setItem('rdab_collapsed',JSON.stringify([...collapsed]));
 
 // ---- overflow menu: sort / collapse / new tag / help ----
@@ -521,9 +529,9 @@ $('#helpback').addEventListener('mousedown',e=>{if(e.target.id==='helpback')$('#
 // ---- notifications + menu popovers ----
 function syncTogs(){$('#t-sound').classList.toggle('on',soundOn);$('#t-desk').classList.toggle('on',deskOn);}
 syncTogs();updateBadge();
-$('#bell').onclick=e=>{e.stopPropagation();$('#moremenu').classList.add('hide');
-  const hidden=$('#notif').classList.toggle('hide');if(!hidden){unseen=0;updateBadge();renderNotif();}};
-$('#menu').onclick=e=>{e.stopPropagation();$('#notif').classList.add('hide');$('#moremenu').classList.toggle('hide');};
+$('#bell').onclick=e=>{e.stopPropagation();if(togglePop('#notif')){unseen=0;updateBadge();renderNotif();}};
+$('#menu').onclick=e=>{e.stopPropagation();togglePop('#moremenu');};
+$('#sortbtn').onclick=e=>{e.stopPropagation();togglePop('#sortmenu');};
 $('#t-sound').onclick=()=>{soundOn=!soundOn;localStorage.setItem('rdab_sound',soundOn?'1':'0');syncTogs();if(soundOn)beep('up');};
 $('#t-desk').onclick=async()=>{
   if(!deskOn){
@@ -534,7 +542,7 @@ $('#t-desk').onclick=async()=>{
   deskOn=!deskOn;localStorage.setItem('rdab_desk',deskOn?'1':'0');syncTogs();
 };
 $('#nclear').onclick=()=>{events=[];unseen=0;updateBadge();renderNotif();};
-document.addEventListener('click',e=>{if(!e.target.closest('#notif,#moremenu,#bell,#menu'))closePops();});
+document.addEventListener('click',e=>{if(!e.target.closest('#notif,#moremenu,#sortmenu,#bell,#menu,#sortbtn'))closePops();});
 $('#q').addEventListener('input',applyFilter);
 $('#resync').onclick=resync;
 $('#add').onclick=()=>openForm(null);
