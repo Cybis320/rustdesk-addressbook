@@ -97,6 +97,10 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path in ("/", "/index.html"):
             return self._file("app.html", "text/html; charset=utf-8")
+        if path == "/manifest.webmanifest":
+            return self._file("manifest.webmanifest", "application/manifest+json")
+        if path == "/icon.svg":
+            return self._file("icon.svg", "image/svg+xml")
         if path == "/api/book":
             return self._json(200, bookmod.view(bookmod.load()))
         if path == "/status":

@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#16181d">
+<link rel="icon" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
 <title>RustDesk Address Book</title><style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -507,7 +511,12 @@ function desktopNotify(up,down){
   const parts=[];if(up.length)parts.push('Online: '+up.join(', '));if(down.length)parts.push('Offline: '+down.join(', '));
   try{new Notification('RustDesk Address Book',{body:parts.join('\n')});}catch(e){}
 }
-function updateBadge(){const b=$('#badge');b.textContent=unseen>99?'99+':unseen;b.classList.toggle('show',unseen>0);}
+function updateBadge(){
+  const b=$('#badge');b.textContent=unseen>99?'99+':unseen;b.classList.toggle('show',unseen>0);
+  if('setAppBadge'in navigator){                 // red count on the Dock icon (installed web app)
+    try{unseen>0?navigator.setAppBadge(unseen):navigator.clearAppBadge();}catch(e){}
+  }
+}
 function renderNotif(){
   const l=$('#nlist');
   if(!events.length){l.innerHTML='<div class="nempty">No status changes yet</div>';return;}
