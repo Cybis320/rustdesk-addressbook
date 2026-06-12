@@ -1,21 +1,29 @@
 # RustDesk Address Book
 
-A self-hosted, single-file web app that turns your RustDesk **recent connections**
-into a proper address book — with **live online status**, tags, search, and
-one-click connect — and works even when you spread machines across **multiple
-rendezvous servers** (where RustDesk's own address book / status dots fall short).
+A self-hosted, single-file web app that turns your RustDesk **recent
+connections** into a browsable address book — with **live online status**, tags,
+search, and one-click connect — including when your machines are spread across
+**multiple rendezvous servers**.
 
-No RustDesk Pro, no account, no cloud. Pure Python standard library + one HTML file.
-
-![screenshot placeholder](docs/screenshot.png)
+Works without RustDesk Pro or an account. Pure Python standard library + one HTML
+file.
 
 ## Why
 
-RustDesk's built-in address book needs Pro or a logged-in API server, and its
-online-status dots don't work when you connect to machines on different servers
-using the `id@server?key=...` form. This tool reads your existing local RustDesk
-peer store, lets you organize it, and queries each rendezvous server directly for
-real-time online status.
+[RustDesk](https://rustdesk.com) is an excellent open-source remote-desktop tool,
+and its hosted address book is a Pro feature that helps fund the project. This is
+a small **companion** for a couple of setups the free, self-hosted path doesn't
+cover on its own:
+
+- You're not on Pro or a logged-in API server, so you've been working from the
+  *recent connections* list.
+- You connect to machines across more than one rendezvous server (via the
+  `id@server?key=...` form), so a single client can't show live status for all of
+  them at once.
+
+It reads your existing local RustDesk peer store, lets you organize it, and
+queries each rendezvous server directly for live status. RustDesk itself is left
+completely untouched.
 
 ## Features
 
@@ -38,7 +46,7 @@ real-time online status.
 ## Quick start
 
 ```bash
-git clone https://github.com/<you>/rustdesk-addressbook.git
+git clone https://github.com/Cybis320/rustdesk-addressbook.git
 cd rustdesk-addressbook
 python3 serve.py
 ```
@@ -112,6 +120,13 @@ python3 status.py <host> <id>... # query online status directly
 - The server binds to **`127.0.0.1` only** — not exposed to your network.
 - It can launch RustDesk connections; treat the machine running it as trusted.
 - Don't commit `book.json` / exports / `tag_rules.json` (already gitignored).
+
+## Acknowledgements
+
+Built on top of the open-source [RustDesk](https://github.com/rustdesk/rustdesk)
+project and its rendezvous protocol — thanks to the RustDesk authors and
+community. This is an independent companion tool, not affiliated with or endorsed
+by RustDesk.
 
 ## License
 
