@@ -31,14 +31,20 @@ def collect_status():
     if now - _status_cache["t"] < STATUS_TTL and _status_cache["data"]:
         return _status_cache["data"]
     smap = bookmod.status_map(bookmod.load())
-    merged = {}
+    merged, ok = {}, False
     if smap:
         with ThreadPoolExecutor(max_workers=len(smap)) as ex:
             futs = [ex.submit(status.query, host, NAT_PORT, ids)
                     for host, ids in smap.items()]
             for fut in futs:
-                merged.update(fut.result())
-    _status_cache.update(t=now, data=merged)
+                r = fut.result()
+                if r is not None:           # None = server unreachable -> omit its
+                    merged.update(r)        # peers (status unknown), don't mark offline
+                    ok = True
+    # only cache a result we actually got; a total failure stays uncached so the
+    # next poll retries instead of serving "all unknown" for the whole TTL
+    if ok:
+        _status_cache.update(t=now, data=merged)
     return merged
 
 

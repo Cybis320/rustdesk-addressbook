@@ -112,8 +112,10 @@ def parse_online_response(msg):
 
 
 def query(host, port, peer_ids, timeout=6.0):
-    """Return {peer_id: bool}. Missing/error -> all False."""
-    result = {pid: False for pid in peer_ids}
+    """Return {peer_id: bool} on success, or None if the server couldn't be
+    reached / gave no valid response. None means *unknown* (e.g. our own machine
+    lost network) — callers must NOT treat that as 'everything offline'."""
+    states = None
     try:
         with socket.create_connection((host, port), timeout=timeout) as s:
             s.settimeout(timeout)
@@ -122,16 +124,13 @@ def query(host, port, peer_ids, timeout=6.0):
                 states = parse_online_response(read_frame(s))
                 if states is not None:
                     break
-            else:
-                return result
     except (OSError, ValueError, ConnectionError):
-        return result
+        return None
+    if states is None:
+        return None
     # hbbs packs bits left-to-right: peer i -> states[i//8] bit (7 - i%8)
-    for i, pid in enumerate(peer_ids):
-        byte = i >> 3
-        if byte < len(states) and states[byte] & (0x80 >> (i & 7)):
-            result[pid] = True
-    return result
+    return {pid: bool(i >> 3 < len(states) and states[i >> 3] & (0x80 >> (i & 7)))
+            for i, pid in enumerate(peer_ids)}
 
 
 if __name__ == "__main__":
@@ -141,6 +140,9 @@ if __name__ == "__main__":
         sys.exit(1)
     host, ids = sys.argv[1], sys.argv[2:]
     res = query(host, 21115, ids)  # online queries go to nat_port = rendezvous - 1
+    if res is None:
+        print(f"{host}: unreachable (status unknown)")
+        sys.exit(2)
     online = sum(res.values())
     print(f"{host}: {online}/{len(ids)} online")
     for pid, up in res.items():
