@@ -204,7 +204,14 @@ const KNOWN={"ProCam-SFF":"#1976D2","EliteCam":"#388E3C","USV":"#F57C00","Raspbe
 let book={default_server:"",servers:[],peers:[]}, stat={};
 let collapsed=new Set(JSON.parse(localStorage.getItem('rdab_collapsed')||'[]'));
 let sortMode=localStorage.getItem('rdab_sort')||'alias';
-let prevStat=null, events=[], unseen=0, audioCtx=null;
+let confirmed={}, offSince={}, events=[], unseen=0, audioCtx=null;
+// Notification sensitivity (asymmetric):
+//  • ONLINE is alerted immediately — don't miss a shipped station phoning home.
+//  • OFFLINE must persist this long before alerting, so brief drops / reboots of
+//    established stations don't spam you (a drop shorter than this is silent and,
+//    since the station never "confirmed" offline, its return is silent too).
+const POLL_MS=10000;
+const OFFLINE_GRACE_MS=60000;   // ~1 min
 let soundOn=localStorage.getItem('rdab_sound')==='1';
 let deskOn=localStorage.getItem('rdab_desk')==='1';
 const $=s=>document.querySelector(s), el=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e;};
@@ -467,20 +474,32 @@ async function refreshStatus(){
   let next=null;
   try{next=await api('GET','/status');}catch(e){}
   if(next&&Object.keys(next).length){
-    if(prevStat)notifyChanges(prevStat,next);   // skip the first poll (no baseline)
-    prevStat=next;stat=next;
+    processStatus(next);
+    stat=next;                                  // dots show live (raw) status
   }
   applyStatus();
 }
 const aliasOf=id=>{const p=book.peers.find(x=>x.id===id);return p?p.alias:id;};
-function notifyChanges(old,next){
-  const up=[],down=[];
+// confirmed[id] = the last state we alerted on (undefined until a silent baseline).
+// Online flips it immediately; offline only after OFFLINE_GRACE_MS of continuous down.
+function processStatus(next){
+  const now=Date.now(), up=[], down=[];
   for(const id in next){
-    if(!(id in old))continue;
-    if(next[id]&&!old[id])up.push(id);
-    else if(!next[id]&&old[id])down.push(id);
+    if(next[id]){                                       // reported ONLINE
+      delete offSince[id];
+      if(confirmed[id]===false)up.push(id);             // real offline -> online: alert now
+      confirmed[id]=true;                               // (undefined baseline stays silent)
+    }else{                                              // reported OFFLINE
+      if(offSince[id]===undefined)offSince[id]=now;
+      if(confirmed[id]===undefined)confirmed[id]=false;                 // baseline, silent
+      else if(confirmed[id]===true&&now-offSince[id]>=OFFLINE_GRACE_MS){
+        down.push(id);confirmed[id]=false;              // sustained offline: alert once
+      }
+    }
   }
-  if(!up.length&&!down.length)return;
+  if(up.length||down.length)emit(up,down);
+}
+function emit(up,down){
   const now=Date.now()/1000;
   [...up.map(id=>[id,true]),...down.map(id=>[id,false])].forEach(([id,on])=>
     events.unshift({id,name:aliasOf(id),on,t:now}));
@@ -587,5 +606,5 @@ document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;
   $('#helpback').classList.remove('show');closePops();});
 
 load().then(refreshStatus);
-setInterval(refreshStatus,15000);
+setInterval(refreshStatus,POLL_MS);
 </script></body></html>

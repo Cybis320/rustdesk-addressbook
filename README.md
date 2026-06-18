@@ -10,25 +10,26 @@ file.
 
 ## Why
 
-[RustDesk](https://rustdesk.com) is an excellent open-source remote-desktop tool,
-and its hosted address book is a Pro feature that helps fund the project. This is
-a small **companion** for a couple of setups the free, self-hosted path doesn't
-cover on its own:
+[RustDesk](https://rustdesk.com) is an excellent open-source remote-desktop tool.
+Its hosted address book is a Pro feature, so on the free, self-hosted path the
+usual way back into a machine is the *recent connections* list — which is hard to
+browse, label, or scan for who's online once you're past a handful of machines.
 
-- You're not on Pro or a logged-in API server, so you've been working from the
-  *recent connections* list.
-- You connect to machines across more than one rendezvous server (via the
-  `id@server?key=...` form), so a single client can't show live status for all of
-  them at once.
+This tool fills that gap for two common situations:
 
-It reads your existing local RustDesk peer store, lets you organize it, and
-queries each rendezvous server directly for live status. RustDesk itself is left
-completely untouched.
+- **Free / self-hosted, no Pro or API server** — it builds a browsable, taggable
+  address book from the peer list RustDesk already keeps on disk.
+- **Machines spread across multiple rendezvous servers** (connected with the
+  `id@server?key=...` form) — it queries every server directly, so live online
+  status for all of them shows up in one place.
+
+It reads the local RustDesk peer store, organizes it, and never modifies RustDesk
+itself.
 
 ## Features
 
 - **Click-to-connect** via the `rustdesk://` scheme (or the `id@server?key=` form for non-default servers)
-- **Live online status** — green dots, refreshed every 15s, across *all* your servers
+- **Live online status** — green dots refreshed every few seconds, across *all* your servers; online/offline notifications (online alerts immediately, offline only after a grace period so brief blips stay quiet)
 - **Tags as labels** — a machine can have several; **hierarchical** via `Parent/Child` names
 - **Drag & drop** — drag a card onto a tag to move it; hold ⌘/Ctrl/Alt to add it (multi-tag)
 - **Collapsible** sections, **search**, and **sort** by display name / hostname / recently accessed
